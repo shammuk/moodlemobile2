@@ -78,10 +78,16 @@ def tokens(t):
     return {x for x in normalizar(t).split() if x not in STOP and len(x) > 1}
 
 def coincidencia(texto, q):
-    found, wanted = tokens(texto), tokens(q)
+    candidato = normalizar(texto).replace("expert pro", "expertpro")
+    esperado = normalizar(q).replace("expert pro", "expertpro")
+    found, wanted = tokens(candidato), tokens(esperado)
     if not wanted:
         return False
-    return len(wanted & found) >= (1 if len(wanted) <= 2 else max(2, round(len(wanted) * .6)))
+    if esperado == "nutramigen lgg" and "nutramigen" in found:
+        return True  # Nombre comercial de ficha oficial, sin afirmar equivalencia.
+    if len(wanted) <= 3:
+        return wanted <= found
+    return len(wanted & found) >= max(3, round(len(wanted) * .8))
 
 def host_correcto(url, host):
     try:
@@ -93,7 +99,7 @@ def host_correcto(url, host):
 def dinero(valor):
     if valor is None:
         return None
-    m = re.search(r"(?:MXN\s*)?\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]{4,}(?:\.[0-9]{1,2})?)", str(valor))
+    m = re.search(r"(?<!\d)(?:MXN\s*)?\$?\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?!\d)", str(valor))
     if not m:
         return None
     try:
@@ -104,7 +110,14 @@ def dinero(valor):
 
 def medida(titulo):
     # El tipo de unidad importa: nunca convertir ml o cápsulas en gramos.
-    m = re.search(r"(?<![0-9])(\d+(?:[.,]\d+)?)\s*(kg|gr(?:amos?)?|g|ml|l|capsulas?|tabletas?|tabs?|pzas?)\b", normalizar(titulo))
+    texto = "".join(c for c in unicodedata.normalize("NFKD", titulo.casefold()) if not unicodedata.combining(c))
+    multi = re.search(r"(\d+)\s*(?:latas?|piezas|pzas?|paquetes?)\s*(?:de|x)\s*(\d+(?:[.,]\d+)?)\s*(kg|gr|g|ml)\b", texto)
+    if multi:
+        cantidad, unit = float(multi.group(1))*float(multi.group(2).replace(",",".")), multi.group(3)
+        if unit == "kg": return cantidad*1000, "g"
+        if unit in ("gr","g"): return cantidad, "g"
+        return cantidad, "ml"
+    m = re.search(r"(?<![0-9])(\d+(?:[.,]\d+)?)\s*(kg|gr(?:amos?)?|g|ml|l|capsulas?|tabletas?|tabs?|pzas?)\b", texto)
     if not m:
         return None, None
     valor = float(m.group(1).replace(",", "."))

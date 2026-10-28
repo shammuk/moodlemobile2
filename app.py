@@ -107,3 +107,21 @@ let s=document.getElementById('fuentes');s.replaceChildren();if(d.fuentes&&d.fue
 catch(e){document.getElementById('resumen').textContent='No se pudo consultar: '+e.message}finally{btn.disabled=false}}
 document.getElementById('producto').addEventListener('keydown',e=>{if(e.key==='Enter')buscar()});buscar();
 </script></body></html>"""
+
+
+# Autoprueba ligera de conectividad al iniciar cada despliegue; no bloquea el servidor.
+@app.on_event("startup")
+async def probar_conectores_al_iniciar():
+    import asyncio
+    import json
+    async def prueba():
+        try:
+            resultado = await consultar("Novamil Rice", "Los Mochis", incluir_competidores=False)
+            print("FARMA_V04_AUTOPRUEBA " + json.dumps({
+                "total_filas": resultado["total_filas"],
+                "fuentes": resultado["fuentes"],
+                "cache": resultado["cache"],
+            }, ensure_ascii=False), flush=True)
+        except Exception as error:
+            print("FARMA_V04_AUTOPRUEBA_ERROR " + str(type(error).__name__), flush=True)
+    asyncio.create_task(prueba())
