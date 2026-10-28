@@ -117,10 +117,18 @@ async def probar_conectores_al_iniciar():
     async def prueba():
         try:
             resultado = await consultar("Novamil Rice", "Los Mochis", incluir_competidores=False)
+            otro = await consultar("Aspirina", "Los Mochis", incluir_competidores=False)
             print("FARMA_V04_AUTOPRUEBA " + json.dumps({
-                "total_filas": resultado["total_filas"],
-                "fuentes": resultado["fuentes"],
-                "cache": resultado["cache"],
+                "novamil": {
+                    "total_filas": resultado["total_filas"],
+                    "muestra": [{"farmacia":r["farmacia"],"producto":r["producto"],"precio_mxn":r["precio_mxn"]} for r in resultado["filas"][:8]],
+                    "fuentes": resultado["fuentes"],
+                },
+                "aspirina": {
+                    "total_filas": otro["total_filas"],
+                    "muestra": [{"farmacia":r["farmacia"],"producto":r["producto"],"precio_mxn":r["precio_mxn"]} for r in otro["filas"][:8]],
+                    "fuentes": otro["fuentes"],
+                }
             }, ensure_ascii=False), flush=True)
         except Exception as error:
             print("FARMA_V04_AUTOPRUEBA_ERROR " + str(type(error).__name__), flush=True)
